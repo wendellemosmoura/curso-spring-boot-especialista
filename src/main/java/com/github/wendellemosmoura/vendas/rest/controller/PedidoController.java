@@ -1,12 +1,13 @@
 package com.github.wendellemosmoura.vendas.rest.controller;
 
+import com.github.wendellemosmoura.vendas.domain.entity.ItemPedido;
 import com.github.wendellemosmoura.vendas.domain.entity.Pedido;
-import com.github.wendellemosmoura.vendas.domain.repository.ItensPedido;
+import com.github.wendellemosmoura.vendas.domain.entity.enums.StatusPedido;
+import com.github.wendellemosmoura.vendas.rest.dto.AtualizacaoStatusPedidoDto;
 import com.github.wendellemosmoura.vendas.rest.dto.InformacaoItemPedidoDto;
 import com.github.wendellemosmoura.vendas.rest.dto.InformacoesPedidoDto;
 import com.github.wendellemosmoura.vendas.rest.dto.PedidoDto;
 import com.github.wendellemosmoura.vendas.service.PedidoService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
@@ -23,8 +24,11 @@ import static org.springframework.http.HttpStatus.CREATED;
 @RequestMapping("/api/pedidos")
 public class PedidoController {
 
-    @Autowired
-    private PedidoService pedidoService;
+    private final PedidoService pedidoService;
+
+    public PedidoController(PedidoService pedidoService) {
+        this.pedidoService = pedidoService;
+    }
 
     @PostMapping
     @ResponseStatus(CREATED)
@@ -41,6 +45,13 @@ public class PedidoController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pedido não encontrado"));
     }
 
+    @PatchMapping("{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateStatus(@PathVariable Integer id, @RequestBody AtualizacaoStatusPedidoDto dto) {
+        String novoStatus = dto.getNovoStatus();
+        pedidoService.atualizaStatus(id, StatusPedido.valueOf(novoStatus));
+    }
+
     private InformacoesPedidoDto converter(Pedido pedido) {
         return InformacoesPedidoDto
                 .builder()
@@ -49,11 +60,12 @@ public class PedidoController {
                 .cpf(pedido.getCliente().getCpf())
                 .nomeCliente(pedido.getCliente().getNome())
                 .total(pedido.getTotal())
+                .status(pedido.getStatus().name())
                 .itensPedido(converter(pedido.getItens()))
                 .build();
     }
 
-    private List<InformacaoItemPedidoDto> conv(List<ItensPedido> itens) {
+    private List<InformacaoItemPedidoDto> converter(List<ItemPedido> itens) {
         if (CollectionUtils.isEmpty(itens)) {
             return Collections.emptyList();
         }
@@ -61,9 +73,9 @@ public class PedidoController {
         return itens.stream().map(
                 item -> InformacaoItemPedidoDto
                         .builder()
-                        .descricaoProduto()
-                        .precoUnitario()
-                        .quantidade()
+                        .descricaoProduto(item.getProduto().getDescricao())
+                        .precoUnitario(item.getProduto().getPreco())
+                        .quantidade(item.getQuantidade())
                         .build()
         ).collect(Collectors.toList());
     }

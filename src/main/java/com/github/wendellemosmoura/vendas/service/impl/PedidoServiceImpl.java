@@ -4,10 +4,12 @@ import com.github.wendellemosmoura.vendas.domain.entity.Cliente;
 import com.github.wendellemosmoura.vendas.domain.entity.ItemPedido;
 import com.github.wendellemosmoura.vendas.domain.entity.Pedido;
 import com.github.wendellemosmoura.vendas.domain.entity.Produto;
+import com.github.wendellemosmoura.vendas.domain.entity.enums.StatusPedido;
 import com.github.wendellemosmoura.vendas.domain.repository.Clientes;
 import com.github.wendellemosmoura.vendas.domain.repository.ItensPedido;
 import com.github.wendellemosmoura.vendas.domain.repository.Pedidos;
 import com.github.wendellemosmoura.vendas.domain.repository.Produtos;
+import com.github.wendellemosmoura.vendas.exception.PedidoNaoEncontradoException;
 import com.github.wendellemosmoura.vendas.exception.RegraNegocioException;
 import com.github.wendellemosmoura.vendas.rest.dto.ItemPedidoDto;
 import com.github.wendellemosmoura.vendas.rest.dto.PedidoDto;
@@ -42,6 +44,7 @@ public class PedidoServiceImpl implements PedidoService {
         pedido.setTotal(dto.getTotal());
         pedido.setDataPedido(LocalDate.now());
         pedido.setCliente(cliente);
+        pedido.setStatus(StatusPedido.REALIZADO);
 
         List<ItemPedido> itensPedido = converterItens(pedido, dto.getItens());
         pedidosRepository.save(pedido);
@@ -53,6 +56,17 @@ public class PedidoServiceImpl implements PedidoService {
     @Override
     public Optional<Pedido> obterPedidoCompleto(Integer id) {
         return pedidosRepository.findByIdFetchItens(id);
+    }
+
+    @Override
+    @Transactional
+    public void atualizaStatus(Integer id, StatusPedido statusPedido) {
+        pedidosRepository
+                .findById(id)
+                .map(pedido -> {
+                    pedido.setStatus(statusPedido);
+                    return pedidosRepository.save(pedido);
+                }).orElseThrow(() -> new PedidoNaoEncontradoException());
     }
 
     private List<ItemPedido> converterItens(Pedido pedido, List<ItemPedidoDto> itens) {

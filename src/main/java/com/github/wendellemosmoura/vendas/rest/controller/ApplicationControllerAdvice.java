@@ -1,5 +1,6 @@
 package com.github.wendellemosmoura.vendas.rest.controller;
 
+import com.github.wendellemosmoura.vendas.exception.PedidoNaoEncontradoException;
 import com.github.wendellemosmoura.vendas.exception.RegraNegocioException;
 import com.github.wendellemosmoura.vendas.rest.ApiErrors;
 import org.springframework.http.HttpStatus;
@@ -16,5 +17,11 @@ public class ApplicationControllerAdvice {
     public ApiErrors handleRegraNegocioException(RegraNegocioException ex) {
         String mensagemErro = ex.getMessage();
         return new ApiErrors(mensagemErro);
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiErrors handlePedidoNotFoundException(PedidoNaoEncontradoException ex) {
+        return new ApiErrors((ex.getMessage()));
     }
 }
